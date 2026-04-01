@@ -37,7 +37,10 @@ async def test_deploy_creates_branch_and_pr(tmp_path):
                     with patch("app.github.workflow.create_pr", new_callable=AsyncMock, return_value=42) as mock_pr:
                         await deploy_workflows_to_repo("org", "repo", "main", "token", tmp_path)
 
-                        mock_branch.assert_called_once_with("org", "repo", WORKFLOW_BRANCH, "abc123", "token")
+                        mock_branch.assert_called_once_with(
+                            "org", "repo", WORKFLOW_BRANCH, "abc123", "token",
+                            api_url="https://api.github.com",
+                        )
                         assert mock_commit.call_count == 4  # 워크플로우 파일 4개
                         mock_pr.assert_called_once()
 

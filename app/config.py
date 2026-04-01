@@ -19,6 +19,19 @@ class Settings(BaseSettings):
         default="https://api.github.com",
         description="GitHub API 엔드포인트. GHES는 'https://{hostname}/api/v3' 형식",
     )
+    log_file_name: str | None = Field(
+        default=None,
+        description="로그 파일명. 설정 시 logs/{log_file_name}에 저장. 미설정 시 콘솔만 출력",
+    )
+    log_rotation_when: str = Field(
+        default="midnight",
+        description="로그 로테이션 주기 (midnight, h, d, w0~w6). TimedRotatingFileHandler 기준",
+    )
+    log_rotation_backup_count: int = Field(
+        default=30,
+        ge=1,
+        description="보관할 로테이션 파일 수",
+    )
     audit_poll_interval_minutes: int = Field(
         default=5,
         ge=1,

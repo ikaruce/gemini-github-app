@@ -132,3 +132,36 @@ async def test_process_entries_marks_doc_id_as_processed(mock_settings):
         await _process_audit_entries("test-org", entries, 1, mock_settings)
 
     assert "doc-to-mark" in poller_module._processed_doc_ids
+
+
+@pytest.mark.asyncio
+async def test_poll_org_audit_log_passes_api_url(mock_ghes_settings):
+    """GHES settings의 github_api_url이 _github_request_raw에 전달되는지 확인."""
+    from app.audit.poller import poll_org_audit_log
+
+    from unittest.mock import MagicMock
+
+    with patch("app.audit.poller.get_installation_token", new_callable=AsyncMock, return_value="tok"):
+        with patch("app.audit.poller._github_request_raw", new_callable=AsyncMock) as mock_req:
+            mock_response = MagicMock()
+            mock_response.json.return_value = []
+            mock_response.headers = {}
+            mock_req.return_value = mock_response
+
+            await poll_org_audit_log("test-org", 1, mock_ghes_settings)
+
+            call_kwargs = mock_req.call_args[1]
+            assert call_kwargs["api_url"] == "https://github.example.com/api/v3"
+
+
+@pytest.mark.asyncio
+async def test_handle_secret_change_passes_api_url(mock_ghes_settings):
+    """_handle_secret_change가 GHES api_url을 register_app_secrets에 전달하는지 확인."""
+    from app.audit.poller import _handle_secret_change
+
+    with patch("app.audit.poller.get_installation_token", new_callable=AsyncMock, return_value="tok"):
+        with patch("app.audit.poller.register_app_secrets", new_callable=AsyncMock) as mock_reg:
+            await _handle_secret_change("test-org", "APP_ID", 1, mock_ghes_settings)
+
+            call_kwargs = mock_reg.call_args[1]
+            assert call_kwargs["api_url"] == "https://github.example.com/api/v3"

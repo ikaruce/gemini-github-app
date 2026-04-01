@@ -9,12 +9,9 @@ from fastapi import FastAPI
 
 from app.audit.poller import poll_all_orgs
 from app.config import get_settings
+from app.logging_config import setup_logging
 from app.webhook.handler import router as webhook_router
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +19,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """APScheduler 시작/종료 생명주기 관리."""
     settings = get_settings()
+    setup_logging(settings)
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(

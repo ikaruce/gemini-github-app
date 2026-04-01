@@ -79,3 +79,38 @@ def test_next_page_url_returns_none_when_no_next():
 def test_next_page_url_returns_none_when_no_link_header():
     mock_response = type("R", (), {"headers": {}})()
     assert _next_page_url(mock_response) is None
+
+
+def test_next_page_url_works_with_ghes_host():
+    """GHES 호스트 URL도 올바르게 추출되는지 확인."""
+    mock_response = type("R", (), {
+        "headers": {"link": '<https://github.example.com/api/v3/repos?page=2>; rel="next"'}
+    })()
+    url = _next_page_url(mock_response)
+    assert url == "https://github.example.com/api/v3/repos?page=2"
+
+
+@pytest.mark.asyncio
+async def test_github_request_uses_custom_api_url():
+    """_github_request_raw가 지정된 api_url을 base_url로 사용하는지 확인."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from app.github.client import _github_request_raw
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+
+    with patch("httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.request = AsyncMock(return_value=mock_response)
+        mock_client_cls.return_value = mock_client
+
+        ghes_url = "https://github.example.com/api/v3"
+        await _github_request_raw("GET", "/orgs/test/repos", token="tok", api_url=ghes_url)
+
+        mock_client_cls.assert_called_once_with(base_url=ghes_url)
+        mock_client.request.assert_called_once()
+        call_kwargs = mock_client.request.call_args
+        assert call_kwargs[0][1] == "/orgs/test/repos"

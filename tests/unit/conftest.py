@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 import pytest
 
 from app.config import Settings, reset_settings
@@ -22,4 +20,18 @@ def mock_settings() -> Settings:
         webhook_secret="test-webhook-secret",
         notify_repo="test-org/ops-repo",
         audit_poll_interval_minutes=5,
+        github_api_url="https://api.github.com",
+    )
+
+
+@pytest.fixture
+def mock_ghes_settings() -> Settings:
+    """GHES 환경 설정 fixture."""
+    return Settings(
+        app_id="123456",
+        app_private_key="-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END RSA PRIVATE KEY-----",
+        webhook_secret="test-webhook-secret",
+        notify_repo="test-org/ops-repo",
+        audit_poll_interval_minutes=5,
+        github_api_url="https://github.example.com/api/v3",
     )
