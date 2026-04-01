@@ -1,5 +1,6 @@
 services:
   app:
+    image: gemini-github-app:${TAG:-latest}
     build: .
     container_name: gemini-github-app
     ports:
