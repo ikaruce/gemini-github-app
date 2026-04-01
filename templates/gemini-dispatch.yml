@@ -1,0 +1,85 @@
+name: Gemini CLI Dispatch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Detect event and trigger
+        id: detect
+        run: |
+          EVENT="${{ github.event_name }}"
+          echo "event=$EVENT" >> "$GITHUB_OUTPUT"
+
+          if [[ "$EVENT" == "issue_comment" ]]; then
+            BODY="${{ github.event.comment.body }}"
+            if echo "$BODY" | grep -q "@gemini-cli"; then
+              echo "trigger=invoke" >> "$GITHUB_OUTPUT"
+            else
+              echo "trigger=none" >> "$GITHUB_OUTPUT"
+            fi
+          elif [[ "$EVENT" == "pull_request" ]]; then
+            echo "trigger=review" >> "$GITHUB_OUTPUT"
+          elif [[ "$EVENT" == "issues" ]]; then
+            echo "trigger=triage" >> "$GITHUB_OUTPUT"
+          else
+            echo "trigger=none" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger review workflow
+        if: steps.detect.outputs.trigger == 'review'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'gemini-review.yml',
+              ref: context.payload.pull_request.head.ref,
+              inputs: {
+                pr_number: String(context.payload.pull_request.number)
+              }
+            });
+
+      - name: Trigger triage workflow
+        if: steps.detect.outputs.trigger == 'triage'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'gemini-triage.yml',
+              ref: context.ref || 'main',
+              inputs: {
+                issue_number: String(context.payload.issue.number)
+              }
+            });
+
+      - name: Trigger invoke workflow
+        if: steps.detect.outputs.trigger == 'invoke'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'gemini-invoke.yml',
+              ref: context.ref || 'main',
+              inputs: {
+                comment_id: String(context.payload.comment.id),
+                comment_body: context.payload.comment.body
+              }
+            });
