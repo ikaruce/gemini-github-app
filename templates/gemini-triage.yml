@@ -1,6 +1,12 @@
 name: Gemini CLI Issue Triage
 
 on:
+  workflow_call:
+    inputs:
+      issue_number:
+        description: 트리아지할 Issue 번호
+        required: true
+        type: number
   issues:
     types: [opened, edited]
   workflow_dispatch:
@@ -35,7 +41,7 @@ jobs:
           APP_ID: ${{ secrets.APP_ID }}
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
         run: |
-          ISSUE_NUMBER="${{ github.event.issue.number || inputs.issue_number }}"
+          ISSUE_NUMBER="${{ inputs.issue_number || github.event.issue.number }}"
           gemini triage \
             --issue "$ISSUE_NUMBER" \
             --apply-labels \

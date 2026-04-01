@@ -1,6 +1,16 @@
 name: Gemini CLI Invoke
 
 on:
+  workflow_call:
+    inputs:
+      comment_id:
+        description: 트리거된 댓글 ID
+        required: true
+        type: number
+      comment_body:
+        description: 댓글 전체 내용
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       comment_id:
@@ -24,8 +34,9 @@ permissions:
 jobs:
   invoke:
     runs-on: ubuntu-latest
-    # 직접 이벤트 트리거인 경우 @gemini-cli 포함 여부 확인
+    # workflow_call/dispatch: 항상 실행 / 직접 이벤트: @gemini-cli 포함 여부 확인
     if: |
+      github.event_name == 'workflow_call' ||
       github.event_name == 'workflow_dispatch' ||
       contains(github.event.comment.body, '@gemini-cli')
 
@@ -43,7 +54,8 @@ jobs:
       - name: Extract command
         id: cmd
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_call" || \
+                "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             BODY="${{ inputs.comment_body }}"
             COMMENT_ID="${{ inputs.comment_id }}"
           else
