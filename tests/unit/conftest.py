@@ -19,6 +19,8 @@ def mock_settings() -> Settings:
         app_private_key="-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END RSA PRIVATE KEY-----",
         webhook_secret="test-webhook-secret",
         notify_repo="test-org/ops-repo",
+        workflows_repo="test-org/gemini-workflows",
+        bot_name="gemini-cli",
         audit_poll_interval_minutes=5,
         github_api_url="https://api.github.com",
     )
@@ -32,6 +34,8 @@ def mock_ghes_settings() -> Settings:
         app_private_key="-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END RSA PRIVATE KEY-----",
         webhook_secret="test-webhook-secret",
         notify_repo="test-org/ops-repo",
+        workflows_repo="test-org/gemini-workflows",
+        bot_name="gemini-cli",
         audit_poll_interval_minutes=5,
         github_api_url="https://github.example.com/api/v3",
     )

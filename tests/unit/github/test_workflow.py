@@ -10,24 +10,25 @@ from app.github.workflow import (
     deploy_workflows_to_repo,
 )
 
+_DEPLOY_KWARGS = dict(workflows_repo="my-org/gemini-workflows", bot_name="gemini-cli")
+
 
 @pytest.mark.asyncio
 async def test_deploy_skips_when_pr_exists(tmp_path):
     """열린 PR이 이미 있으면 브랜치 생성 없이 스킵."""
-    # 빈 템플릿 파일 생성
-    for f in ["gemini-dispatch.yml", "gemini-review.yml", "gemini-triage.yml", "gemini-invoke.yml", "pr-body.md"]:
+    for f in ["dispatch.yml", "pr-body.md"]:
         (tmp_path / f).write_text("placeholder")
 
     with patch("app.github.workflow.pr_exists_for_branch", new_callable=AsyncMock, return_value=True):
         with patch("app.github.workflow.create_branch", new_callable=AsyncMock) as mock_branch:
-            await deploy_workflows_to_repo("org", "repo", "main", "token", tmp_path)
+            await deploy_workflows_to_repo("org", "repo", "main", "token", tmp_path, **_DEPLOY_KWARGS)
             mock_branch.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_deploy_creates_branch_and_pr(tmp_path):
     """PR 없을 때 브랜치 생성 → 파일 커밋 → PR 생성."""
-    for f in ["gemini-dispatch.yml", "gemini-review.yml", "gemini-triage.yml", "gemini-invoke.yml", "pr-body.md"]:
+    for f in ["dispatch.yml", "pr-body.md"]:
         (tmp_path / f).write_text(f"content of {f}")
 
     with patch("app.github.workflow.pr_exists_for_branch", new_callable=AsyncMock, return_value=False):
@@ -35,13 +36,13 @@ async def test_deploy_creates_branch_and_pr(tmp_path):
             with patch("app.github.workflow.create_branch", new_callable=AsyncMock) as mock_branch:
                 with patch("app.github.workflow.commit_file", new_callable=AsyncMock) as mock_commit:
                     with patch("app.github.workflow.create_pr", new_callable=AsyncMock, return_value=42) as mock_pr:
-                        await deploy_workflows_to_repo("org", "repo", "main", "token", tmp_path)
+                        await deploy_workflows_to_repo("org", "repo", "main", "token", tmp_path, **_DEPLOY_KWARGS)
 
                         mock_branch.assert_called_once_with(
                             "org", "repo", WORKFLOW_BRANCH, "abc123", "token",
                             api_url="https://api.github.com",
                         )
-                        assert mock_commit.call_count == 4  # 워크플로우 파일 4개
+                        assert mock_commit.call_count == 1  # dispatch.yml 1개
                         mock_pr.assert_called_once()
 
 
@@ -53,7 +54,7 @@ async def test_deploy_continues_when_branch_already_exists(tmp_path):
     """
     import httpx
 
-    for f in ["gemini-dispatch.yml", "gemini-review.yml", "gemini-triage.yml", "gemini-invoke.yml", "pr-body.md"]:
+    for f in ["dispatch.yml", "pr-body.md"]:
         (tmp_path / f).write_text("content")
 
     mock_422_response = MagicMock(status_code=422)
@@ -65,5 +66,5 @@ async def test_deploy_continues_when_branch_already_exists(tmp_path):
             with patch("app.github.workflow._github_request", new_callable=AsyncMock, side_effect=mock_422):
                 with patch("app.github.workflow.commit_file", new_callable=AsyncMock) as mock_commit:
                     with patch("app.github.workflow.create_pr", new_callable=AsyncMock, return_value=1):
-                        await deploy_workflows_to_repo("org", "repo", "main", "token", tmp_path)
-                        assert mock_commit.call_count == 4
+                        await deploy_workflows_to_repo("org", "repo", "main", "token", tmp_path, **_DEPLOY_KWARGS)
+                        assert mock_commit.call_count == 1

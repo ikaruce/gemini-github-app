@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     app_private_key: str = Field(..., description="GitHub App RSA 비밀키 (PEM 형식)")
     webhook_secret: str = Field(..., description="Webhook 서명 검증 시크릿")
     notify_repo: str = Field(..., description="알림 Issue를 생성할 리포 (org/repo)")
+    workflows_repo: str = Field(..., description="reusable 워크플로우가 있는 리포 (org/repo)")
+    bot_name: str = Field(..., description="issue_comment 트리거 앱 이름 (예: gemini-cli)")
     github_api_url: str = Field(
         default="https://api.github.com",
         description="GitHub API 엔드포인트. GHES는 'https://{hostname}/api/v3' 형식",
@@ -45,11 +47,11 @@ class Settings(BaseSettings):
         """환경변수 파일에서 \n 리터럴로 저장된 PEM을 실제 개행으로 변환."""
         return v.replace("\\n", "\n")
 
-    @field_validator("notify_repo")
+    @field_validator("notify_repo", "workflows_repo")
     @classmethod
-    def validate_notify_repo(cls, v: str) -> str:
+    def validate_repo_format(cls, v: str) -> str:
         if "/" not in v or v.count("/") != 1:
-            raise ValueError("notify_repo는 'org/repo' 형식이어야 합니다.")
+            raise ValueError("'org/repo' 형식이어야 합니다.")
         return v
 
 

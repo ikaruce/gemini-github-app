@@ -132,6 +132,8 @@ async def _deploy_to_repos(
                     default_branch=repo.get("default_branch", "main"),
                     token=token,
                     templates_dir=TEMPLATES_DIR,
+                    workflows_repo=settings.workflows_repo,
+                    bot_name=settings.bot_name,
                     api_url=api_url,
                 )
             except Exception:

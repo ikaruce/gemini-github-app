@@ -6,7 +6,8 @@
       "Bash(python -m pip install uv)",
       "Bash(python -m uv run pytest tests/ -v)",
       "Bash(dir \"C:\\\\workspaces\\\\gemini-github-app\\\\app\" /s /b)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(python -m pytest tests/ -v)"
     ]
   }
 }

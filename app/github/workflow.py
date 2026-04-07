@@ -12,12 +12,7 @@ from app.github.repo import get_branch_sha, get_file_sha, pr_exists_for_branch
 logger = logging.getLogger(__name__)
 
 WORKFLOW_BRANCH = "add-gemini-cli-workflows"
-WORKFLOW_FILES = [
-    "gemini-dispatch.yml",
-    "gemini-review.yml",
-    "gemini-triage.yml",
-    "gemini-invoke.yml",
-]
+WORKFLOW_FILES = ["dispatch.yml"]
 WORKFLOWS_PATH = ".github/workflows"
 
 
@@ -114,6 +109,8 @@ async def deploy_workflows_to_repo(
     default_branch: str,
     token: str,
     templates_dir: Path,
+    workflows_repo: str,
+    bot_name: str,
     api_url: str = GITHUB_API_BASE,
 ) -> None:
     """단일 리포에 Gemini CLI 워크플로우 배포.
@@ -121,7 +118,7 @@ async def deploy_workflows_to_repo(
     순서:
     1. 열린 PR 존재 → 스킵
     2. 브랜치 생성
-    3. 워크플로우 파일 4개 커밋
+    3. dispatch.yml 커밋 (workflows_repo, bot_name 치환)
     4. PR 생성
     """
     if await pr_exists_for_branch(owner, repo, WORKFLOW_BRANCH, token, api_url=api_url):
@@ -131,11 +128,11 @@ async def deploy_workflows_to_repo(
     sha = await get_branch_sha(owner, repo, default_branch, token, api_url=api_url)
     await create_branch(owner, repo, WORKFLOW_BRANCH, sha, token, api_url=api_url)
 
-    pr_body = _load_pr_body(templates_dir)
+    pr_body = _load_pr_body(templates_dir, workflows_repo=workflows_repo, bot_name=bot_name)
 
     for filename in WORKFLOW_FILES:
         file_path = f"{WORKFLOWS_PATH}/{filename}"
-        content = _load_template(templates_dir, filename)
+        content = _load_template(templates_dir, filename, workflows_repo=workflows_repo, bot_name=bot_name)
         await commit_file(owner, repo, WORKFLOW_BRANCH, file_path, content, token, api_url=api_url)
         logger.info("%s/%s: %s 커밋 완료", owner, repo, filename)
 
@@ -152,14 +149,16 @@ async def deploy_workflows_to_repo(
     logger.info("%s/%s: PR #%d 생성 완료", owner, repo, pr_number)
 
 
-def _load_template(templates_dir: Path, filename: str) -> str:
-    """템플릿 파일 텍스트 로드."""
-    return (templates_dir / filename).read_text(encoding="utf-8")
+def _load_template(templates_dir: Path, filename: str, **substitutions: str) -> str:
+    """템플릿 파일 텍스트 로드 및 치환."""
+    content = (templates_dir / filename).read_text(encoding="utf-8")
+    return content.format(**substitutions) if substitutions else content
 
 
-def _load_pr_body(templates_dir: Path) -> str:
-    """PR 본문 템플릿 로드."""
+def _load_pr_body(templates_dir: Path, **substitutions: str) -> str:
+    """PR 본문 템플릿 로드 및 치환."""
     pr_body_path = templates_dir / "pr-body.md"
     if pr_body_path.exists():
-        return pr_body_path.read_text(encoding="utf-8")
+        content = pr_body_path.read_text(encoding="utf-8")
+        return content.format(**substitutions) if substitutions else content
     return "Gemini CLI 워크플로우를 추가합니다."

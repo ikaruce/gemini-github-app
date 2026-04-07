@@ -16,6 +16,8 @@ def _make_settings(**kwargs) -> Settings:
         app_private_key="key",
         webhook_secret="secret",
         notify_repo="org/repo",
+        workflows_repo="org/gemini-workflows",
+        bot_name="gemini-cli",
     )
     defaults.update(kwargs)
     return Settings(**defaults)

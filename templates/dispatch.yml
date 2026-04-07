@@ -1,0 +1,34 @@
+name: Gemini CLI Dispatch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+jobs:
+  call-review:
+    if: github.event_name == 'pull_request'
+    uses: {workflows_repo}/.github/workflows/review.yml@main
+    with:
+      pr_number: ${{{{ github.event.pull_request.number }}}}
+    secrets: inherit
+
+  call-triage:
+    if: github.event_name == 'issues'
+    uses: {workflows_repo}/.github/workflows/triage.yml@main
+    with:
+      issue_number: ${{{{ github.event.issue.number }}}}
+    secrets: inherit
+
+  call-invoke:
+    if: |
+      github.event_name == 'issue_comment' &&
+      contains(github.event.comment.body, '@{bot_name}')
+    uses: {workflows_repo}/.github/workflows/invoke.yml@main
+    with:
+      comment_id: ${{{{ github.event.comment.id }}}}
+      comment_body: ${{{{ github.event.comment.body }}}}
+    secrets: inherit
